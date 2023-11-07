@@ -1,10 +1,13 @@
-mod utils;
+// import our crate
+use myerr::MyErrorTrait;
 
+mod utils;
 use utils::*;
 
-#[derive(Debug)]
+#[derive(Debug, MyErrorTrait)]
 #[repr(C)]
 pub enum MySpecificError {
+    #[success]
     Ok,
     Einval,
     Enomem,
@@ -12,14 +15,26 @@ pub enum MySpecificError {
     Custom2,
 }
 
-impl<T> From<Result<T, MySpecificError>> for MySpecificError {
-    fn from(ret: Result<T, MySpecificError>) -> Self {
-        match ret {
-            Ok(_) => MySpecificError::Ok,
-            Err(err) => err,
-        }
-    }
-}
+// This code is equivalent to:
+//
+// #[derive(Debug)]
+// #[repr(C)]
+// pub enum MySpecificError {
+//     Ok,
+//     Einval,
+//     Enomem,
+//     Custom1,
+//     Custom2,
+// }
+//
+// impl<T> From<Result<T, MySpecificError>> for MySpecificError {
+//     fn from(ret: Result<T, MySpecificError>) -> Self {
+//         match ret {
+//             Ok(_) => MySpecificError::Ok,
+//             Err(err) => err,
+//         }
+//     }
+// }
 
 fn run_inner(val: u32) -> Result<(), MySpecificError> {
     let val = guard_valid_or(val, MySpecificError::Einval)?;
