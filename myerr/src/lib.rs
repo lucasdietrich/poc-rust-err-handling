@@ -1,24 +1,35 @@
 extern crate proc_macro;
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, DeriveInput, Ident, Meta, LitStr, meta::ParseNestedMeta};
+use syn::{Meta, Ident};
 
 #[proc_macro_derive(MyErrorTrait, attributes(success))]
 pub fn my_error_trait_derive(tokens: TokenStream) -> TokenStream {
     let ast: syn::DeriveInput = syn::parse(tokens).unwrap();
     let name = &ast.ident;
-    let mut success_variant : Option<Ident> = None;
 
     // find the #[success] in front of the enum variant
-    if let syn::Data::Enum(data_enum) = &ast.data {
-        for variant in &data_enum.variants {
-            for attr in &variant.attrs {
-                if attr.path().is_ident("success") {
-                    success_variant = Some(variant.ident.clone());
-                }
-            }
-        }
-    }
+    let success_variant: Option<Ident> = if let syn::Data::Enum(data_enum) = &ast.data {
+        data_enum
+            .variants
+            .iter()
+            .filter_map(|variant| {
+                variant
+                    .attrs
+                    .iter()
+                    .find(|attr| {
+                        if let Meta::Path(path) = &attr.meta {
+                            path.is_ident("success")
+                        } else {
+                            panic!("Attribute must be a path and nothing else, e.g. #[success]");
+                        }
+                    })
+                    .map(|_| variant.ident.clone())
+            })
+            .next()
+    } else {
+        None
+    };
 
     // Generate the implementation of the trait
     if let Some(success_variant) = success_variant {
