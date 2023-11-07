@@ -1,3 +1,7 @@
+mod utils;
+
+use utils::*;
+
 #[derive(Debug)]
 #[repr(C)]
 pub enum MySpecificError {
@@ -8,71 +12,31 @@ pub enum MySpecificError {
     Custom2,
 }
 
-impl CtypeError for MySpecificError {
-    fn success_value() -> Self {
-        MySpecificError::Ok
-    }
-}
-
-impl From<MyGenericError> for MySpecificError {
-    fn from(err: MyGenericError) -> Self {
-        match err {
-            MyGenericError::Ok => MySpecificError::Ok,
-            MyGenericError::Einval => MySpecificError::Einval,
-            MyGenericError::Enomem => MySpecificError::Enomem,
+impl<T> From<Result<T, MySpecificError>> for MySpecificError {
+    fn from(ret: Result<T, MySpecificError>) -> Self {
+        match ret {
+            Ok(_) => MySpecificError::Ok,
+            Err(err) => err,
         }
     }
 }
 
-enum MyGenericError {
-    Ok,
-    Einval,
-    Enomem,
-}
+fn run_inner(val: u32) -> Result<u32, MySpecificError> {
+    let val = guard_valid_or(val, MySpecificError::Einval)?;
+    let val = guard_valid2_or(val, MySpecificError::Enomem)?;
 
-trait CtypeError: From<MyGenericError> {
-    fn success_value() -> Self;
-}
-
-fn is_valid(val: u32) -> Result<(), MyGenericError> {
-    if val == 0 {
-        Ok(())
+    if val == 2 {
+        return Err(MySpecificError::Custom1);
     } else {
-        Err(MyGenericError::Einval)
+        Ok(val)
     }
 }
 
-fn run_inner(val: u32) -> Result<(), MyGenericError> {
-    let z = is_valid(val)?;
-
-    Ok(())
-}
-
-fn cerr<T>(ret: Result<(), MyGenericError>) -> T 
-    where T: CtypeError
-{
-    match ret {
-        Ok(_) => T::success_value(),
-        Err(err) => err.into(),
-    }
-}
-
-pub fn run(val: u32) -> MySpecificError {
-    let ret = run_inner(val);
-
-    match ret {
-        Ok(_) => MySpecificError::Ok,
-        Err(err) => err.into(),
-    }
-}
-
-pub fn run2(val: u32) -> MySpecificError {
-    let ret = run_inner(val);
-
-    cerr(ret)
+pub unsafe extern "C" fn run(val: u32) -> MySpecificError {
+    run_inner(val).into()
 }
 
 fn main() {
-    let err = run(10);
+    let err = unsafe { run(10) };
     println!("err: {:?}", err);
 }
