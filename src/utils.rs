@@ -1,9 +1,3 @@
-pub enum MyGenericError {
-    Ok,
-    Einval,
-    Enomem,
-}
-
 pub fn guard_valid_or<T>(val: u32, err: T) -> Result<u32, T> {
     if val != 0 {
         Ok(val)

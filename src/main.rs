@@ -21,14 +21,14 @@ impl<T> From<Result<T, MySpecificError>> for MySpecificError {
     }
 }
 
-fn run_inner(val: u32) -> Result<u32, MySpecificError> {
+fn run_inner(val: u32) -> Result<(), MySpecificError> {
     let val = guard_valid_or(val, MySpecificError::Einval)?;
     let val = guard_valid2_or(val, MySpecificError::Enomem)?;
 
     if val == 2 {
         return Err(MySpecificError::Custom1);
     } else {
-        Ok(val)
+        Ok(())
     }
 }
 
